@@ -1,0 +1,469 @@
+angular.module('services').factory('AuthService', ['$http', function($http) {
+    var authService = {};
+    return authService;
+}]);
+//地图服务
+angular.module('services').factory('Geolocation', ['$http', function($http) {
+    var Geolocation = {};
+    Geolocation.getRegeo=function(callback,parse){
+            console.log(parse);
+            $http({
+                method: 'GET',
+                url: 'http://restapi.amap.com/v3/geocode/regeo?key=ebf503724616407d7759509d792f1539&location='+parse.valueStr3+','+parse.valueStr2+'&poitype=商务写字楼&radius=100&batch=false&roadlevel=1'
+            }).success(function (data, status, headers, config) {
+                  callback(data);
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    return Geolocation;
+}]);
+//微信服务
+angular.module('services').factory('Wechat', ['$http', function($http) {
+    var Wechat = {};
+    Wechat.getToken=function(callback,parse){
+            $http({
+                method: 'POST',
+                url: '/wechat/commonaccesstoken/',
+                data:parse
+            }).success(function (data, status, headers, config) {
+                  if(data.result.errCode===0){
+                     callback(data.data);
+                  }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    Wechat.gitTicket=function(callback,token){
+           $http({
+                method: 'GET',
+                url: 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token='+token+'&type=jsapi'
+            }).success(function (data, status, headers, config) {
+                     callback(data.data);
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //微信js_sdk配置
+    Wechat.config=function(callback){
+         var parse = {};
+         parse.url = location.href.split('#')[0];
+         var token_callback = function (data) {
+            wx.config({
+                debug: false,
+                appId: 'wx482d22c4c016b957',
+                timestamp: data.timestamp,
+                nonceStr: data.nonceStr,
+                signature: data.signature,
+                jsApiList: [
+                    'onMenuShareAppMessage',
+                    'getLocation'
+                ]
+            });
+            if(callback){return callback()};
+
+         };
+         this.getToken(token_callback, parse);
+    };
+    //分享群给朋友
+    Wechat.shareAppMessage_group=function(obj){
+          var timestamp = Date.parse(new Date());
+          if(!obj){
+              return false;
+          }
+          var title='"'+obj.userName+'"邀请您加入'+'"'+obj.title+'"';
+          wx.ready(function () {
+                   wx.onMenuShareAppMessage({
+                        title: title, // 分享标题
+                        desc: obj.desc, // 分享描述
+                        link: obj.link+"?t="+timestamp, // 分享链接
+                        //imgUrl:'http://7xpx4l.com2.z0.glb.qiniucdn.com/duishang_public_icon108_v1.png' , // 分享图标
+                        imgUrl:obj.avatar , // 分享图标
+                        type: '', // 分享类型,music、video或link，不填默认为link
+                        success: function () {
+                            //alert("邀请成功");
+                        },
+                        cancel: function () {
+                            //alert("邀请失败");
+                        }
+                    });
+            });
+
+    };
+    //获取当前地址
+    Wechat.getLocation=function(obj){
+           wx.ready(function () {
+                 wx.getLocation({
+                    type: 'wgs84', // 默认为wgs84的gps坐标，如果要返回直接给openLocation用的火星坐标，可传入'gcj02'
+                    success: function (res) {
+                        var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+                        var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+                        var speed = res.speed; // 速度，以米/每秒计
+                        var accuracy = res.accuracy; // 位置精度
+                    }
+                });
+           });
+    };
+    return Wechat;
+}]);
+//群服务
+angular.module('services').factory('GroupService', ['$http','DS_pop', function($http,DS_pop) {
+    var groupService = {};
+    //获取群列表数据
+    groupService.getListData=function(callback){
+            $http({
+                method: 'GET',
+                url: '/v0/groups/'
+            }).success(function (data, status, headers, config) {
+                 if(data.result.errCode===0){
+                     callback(data.data);
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //验证群名称是否存在
+    groupService.validationGroupName=function(callback,name){
+            var parm={};
+            $http({
+                method: 'post',
+                url: '',    //Replace
+                data:parm
+            }).success(function (data, status, headers, config) {
+                 if(data.result.errCode===0){
+                     callback(data.data);
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //创建群
+    groupService.createGroup=function(callback,obj){
+          var parm=obj;
+          $http({
+                method: 'post',
+                url: '/v0/web/group/',    //todo
+                data:parm
+            }).success(function (data, status, headers, config) {
+                 if(data.result.errCode==0){
+                     callback(data.data)
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //获取群名片
+    groupService.get_profile=function(callback,groupid){
+          $http({
+                method: 'GET',
+                url: '/v0/group/'+groupid+'/profile/'
+            }).success(function (data, status, headers, config) {
+                 if(data.result.errCode==0){
+                     if(callback){
+                          callback(data.data)
+                     }
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //修改群名片
+    groupService.post_profile=function(callback,groupid,obj){
+          $http({
+                method: 'PUT',
+                url: '/v0/group/'+groupid+'/profile/',
+                data:obj
+            }).success(function (data, status, headers, config) {
+                 if(data.result.errCode==0){
+                     callback(data.data)
+                 }else{
+                      DS_pop.pop_remind("修改失败");
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+     //退出群
+    groupService.sign_out_group=function(callback,groupid){
+          $http({
+                method: 'post',
+                url: '/v0/group/'+groupid+'/exit/'
+            }).success(function (data, status, headers, config) {
+                 if(data.result.errCode==0){
+                     callback(data.data)
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //根据 SequenceID 搜索群
+    groupService.getGroupToSequenceID=function(callback,groupid){
+            $http({
+                method: 'GET',
+                url: '/v0/group/search/sequenceid/'+groupid+'/'
+            }).success(function (data, status, headers, config) {
+                 if(data.result.errCode==0){
+                     callback(data.data)
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //获取单个群信息
+    groupService.getGroupInfo=function(callback,groupId,arr){   //arr 成群id
+           $http({
+                method: 'post',
+                url: '/v0/group/polling/'+groupId+'/',    //todo
+                data:arr
+            }).success(function (data, status, headers, config) {
+
+                 if(data.result.errCode==0){
+                     callback(data.data)
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //加入群
+    groupService.joinGroup=function(callback,groupId){
+           $http({
+                method: 'post',
+                url: '/v0/web/group/'+groupId+'/enter/'
+            }).success(function (data, status, headers, config) {
+                     callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+
+    //群公告
+     groupService.get_notice=function(callback,groupId){
+          $http({
+              method:'GET',
+              url: '/v0/group/'+groupId+'/notice/'
+          }).success(function (data, status, headers, config) {
+                     callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+
+    groupService.post_notice=function(callback,groupId,obj){
+          $http({
+              method:'post',
+              url: '/v0/group/'+groupId+'/notice/',
+              data:obj
+          }).success(function (data, status, headers, config) {
+                     callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //群关系
+    groupService.relation=function(callback,groupId,userId){
+          $http({
+              method:'GET',
+              url: '/v0/group/'+groupId+'/memberrelationresult/'+userId+'/'
+          }).success(function (data, status, headers, config) {
+                     callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //个人与个人的合作指数
+    groupService.relationToPersonal=function(callback,openId,userId){
+          $http({
+              method:'GET',
+              url: '/v0/relation/score/user/'+userId+'/user/'+openId+'/'
+          }).success(function (data, status, headers, config) {
+                    if(data.result.errCode==0){
+                         callback(data.data)
+                    }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    return groupService
+}]);
+//个人信息服务
+angular.module('services').factory('Account', ['$http', function($http) {
+    var account = {};
+    account.getUserId=function(callback){
+          $http({
+              method:'GET',
+              url: '/v0/user/id/'
+          }).success(function (data, status, headers, config) {
+                 callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    account.getPersonalData=function(callback,userId){
+          $http({
+              method:'GET',
+              url: '/v0/info/archive/'+userId+'/'
+          }).success(function (data, status, headers, config) {
+                 if(data.result.errCode==0){
+                     callback(data.data)
+                 }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    account.getProvinceData=function(callback){
+          $http({
+              method:'GET',
+              url: '/static/public/json/province.json'
+          }).success(function (data, status, headers, config) {
+                     callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //获取城市
+    account.getCityData=function(callback){
+          $http({
+              method:'GET',
+              url: '/static/public/json/city.json'
+          }).success(function (data, status, headers, config) {
+                     callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //获取行业数据
+    account.getDomainData=function(callback){
+          $http({
+              method:'GET',
+              url: '/static/public/json/domain_data_new.json'
+          }).success(function (data, status, headers, config) {
+                     callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //获取学校列表
+    account.getSchoolData=function(callback){
+          $http({
+              method:'GET',
+              url: '/static/public/json/colleges_data.json'
+          }).success(function (data, status, headers, config) {
+                     callback(data)
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+    //当前需求
+    account.getDomainKeywordsStr='好项目、天使投资、风险投资、私募股权投资、资金借贷、跨界合作、高端人脉、合伙人、政府关系、营销策划推广、新媒体推广、商业模式优化、股权设计、会议场地、技术团队、运营团队、高端人才、专家&明星、消费品市场渠道、企业市场渠道、库存清理';
+    account.getDomainKeywords=account.getDomainKeywordsStr.split('、');
+    //关注领域
+    account.getFocusDomainStr='投融资、金融理财、健康养生、子女教育、文化娱乐、收藏、广告传媒、互联网+、电子商务、房地产、生物医药、管理培训、咨询服务、新媒体营销、政府关系、新能源、环保、慈善、新农业、贵金属、消费升级、大健康市场、老年人市场、儿童市场、高端人群市场、现代服务业、女性市场、智能硬件、大数据、云计算、虚拟现实、人工智能、商业模式、人力资源、领导力';
+    account.getFocusDomain=account.getFocusDomainStr.split('、');
+    //职位
+    account.getJobtitle=["董事会主席","董事长","创始人","联合创始人","CEO","总经理","总裁","副总裁/VP","CXO","分公司负责人","总监","事业部总经理",
+        "区域总监","经理/主管","首席专家","工程师","程序猿","技术专家","会长","理事长","秘书长","主任","局长","厅长","科长"];
+     //优势资源
+    account.getPeopleResourcesStr='品牌优势、历史优势、渠道优势、客源优势、连锁与网点、电商优势、推广资源、策划优势、媒体优势、伙伴优势、品质优势、技术研发、性价比优势、专业技能、定制优势、解决方案、设计优势、服务优势、创新优势、产能优势、资金优势、人才与团队、人脉优势、平台优势、认证优势、资质优势、行业地位、政府关系、跨界整合、海外资源';
+    account.getPeopleResources=account.getPeopleResourcesStr.split('、');
+    //团体/组织
+    account.getOrganization=[];
+    //个人爱好
+    account.getHobbyListStr='跑步、游泳、健身、书法、绘画、诗词、羽毛球、兵乓球、台球、网球、篮球、足球、读书、电影、音乐、瑜伽、钢琴、小提琴、乐器、刺绣、手工艺、NBA、CBA、拳击、高尔夫、骑马、游艇、自驾游、户外探险、登山攀岩、潜水、极限运动、太空游、旗袍、太极、国学、易经风水、武术、魔术、辟谷、保龄球、旅行、写作、禅修';
+    account.getHobbyList=account.getHobbyListStr.split('、');
+    //职位
+    account.JobTitleStr='董事会主席,董事长,创始人,联合创始人,CEO,总经理,总裁,副总裁/VP,CXO,分公司负责人,总监,事业部总经理,区域总监,经理/主管,首席专家,工程师,程序猿,技术专家,会长,理事长,秘书长,主任,局长,厅长,科长';
+    account.getJobTitle=account.JobTitleStr.split(',');
+    //提交个人信息数据
+    account.commitInfos=function(callback,arr){
+          $http({
+              method:'post',
+              data:arr,
+              url: '/v0/infos/'
+          }).success(function (data, status, headers, config) {
+                     if(callback){
+                         callback(data)
+                     }
+            }).error(function (data, status, headers, config) {
+
+            });
+    };
+
+    //提交信息数据的格式配置
+    account.commitInfos_format=function(id,int,valueStr,valueStr2,valueStr3){
+           var o={};
+           o.typeId=id;
+           if(int!=null){
+               o.valueInt=int;
+           }
+           if(angular.isArray(valueStr)){
+                o.valueStrArray=valueStr;
+           }else{
+                o.valueStr=valueStr;
+           }
+           if(valueStr2 || valueStr2==""){
+               o.valueStr2=valueStr2;
+           }
+          if(valueStr3 || valueStr2==""){
+               o.valueStr3=valueStr3;
+           }
+           return o;
+     };
+    return account
+}]);
+//延迟加载数据
+angular.module('services').factory('Lazilyload', ['$http',"GroupService", function($http,groupService){
+     var Lazilyload=function(data,nub){
+         this.items = [];
+         this.busy = false;
+         this.after = '';
+         this.page = 0;
+     };
+     Lazilyload.prototype.nextPage = function () {
+         console.log(this.data);
+         if (this.busy) return;
+         this.busy = true;
+         groupService.getGroupInfo($scope.getListInfoCallback,$scope.groupId,$scope.menbersIds);
+         for(var i=0;i<10;i++){
+              this.items.push(this.data[i]);
+         }
+         //this.items=this.data;
+     };
+    return Lazilyload;
+}]);
+//与app交互服务
+angular.module('services').factory('nativeInteractive', ['$http', function($http){
+     var nativeInteractive=function(fn,obj){
+            //ios
+            function setupWebViewJavascriptBridge(callback){
+                  if (window.WebViewJavascriptBridge) { return callback(WebViewJavascriptBridge); }
+                  if (window.WVJBCallbacks) { return window.WVJBCallbacks.push(callback); }
+                  window.WVJBCallbacks = [callback];
+                  var WVJBIframe = document.createElement('iframe');
+                  WVJBIframe.style.display = 'none';
+                  WVJBIframe.src = 'wvjbscheme://__BRIDGE_LOADED__';
+                  document.documentElement.appendChild(WVJBIframe);
+                  setTimeout(function() { document.documentElement.removeChild(WVJBIframe) }, 0)
+            }
+            setupWebViewJavascriptBridge(function(bridge) {
+                   if(obj){
+                        bridge.callHandler('webview_call_native', obj, function(response) {});
+                   }
+                   bridge.registerHandler('native_call_webview', function(data,response) {
+                        //$scope.show_log("native填写信息回调",data);
+                        fn(data);
+                   })
+            });
+            //android
+            if(window.Android && obj){
+                   var str=JSON.stringify(obj)
+                   window.Android.webview_call_native(str);
+            }
+
+            window.native_call_webview=function(data){
+                    var obj=eval('('+data+')');
+                    fn(obj);
+             }
+      }
+      return nativeInteractive;
+}]);
+
